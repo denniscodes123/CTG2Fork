@@ -252,20 +252,22 @@ public class ModifyHurtModPlayer : ModPlayer
         var modPlayer = Player.GetModPlayer<PlayerManager>();
         int attackerIndex = info.DamageSource.SourcePlayerIndex;
         int projIndex = info.DamageSource.SourceProjectileLocalIndex;
+
         if (projIndex >= 0 && projIndex < Main.maxProjectiles)
         {
             Projectile proj = Main.projectile[projIndex];
             if (proj.active)
             {
-                if (proj.type == 969)
-                {
-                    proj.Kill();
-                }
-                if (proj.type == 263 || proj.type == 513 || proj.type == 229 || proj.type == 45 || proj.type == 280)
+                if (proj.type == 263 || proj.type == 513 || proj.type == 229 || proj.type == 45 || proj.type == 280 || proj.type == 969)
                 {
                     proj.Kill();
                 }
             }
+        }
+
+        if (info.DamageSource.SourceProjectileType == 969 && Player.whoAmI == Main.myPlayer)
+        {
+            Player.AddBuff(149, 60);
         }
 
         if (modPlayer.currentClass.Name == "Paladin")

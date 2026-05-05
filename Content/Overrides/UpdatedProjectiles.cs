@@ -57,6 +57,13 @@ public class ProjectileOverrides : GlobalProjectile
 
         //     projectile.Center = center;
         // }
+        if (projectile.type == 969)
+        {
+            if (projectile.timeLeft > 180)
+            {
+                projectile.timeLeft = 180;
+            }
+        }
         if (!playedSoundBoomerangs && (projectile.type == ProjectileID.ThornChakram || projectile.type == ProjectileID.Flamarang))
         {
             SoundEngine.PlaySound(SoundID.Item1, projectile.Center);
@@ -245,9 +252,9 @@ public class ModifyHurtModPlayer : ModPlayer
         var modPlayer = Player.GetModPlayer<PlayerManager>();
         int attackerIndex = info.DamageSource.SourcePlayerIndex;
         int projIndex = info.DamageSource.SourceProjectileLocalIndex;
+        Projectile proj = Main.projectile[projIndex];
         if (projIndex >= 0 && projIndex < Main.maxProjectiles)
         {
-            Projectile proj = Main.projectile[projIndex];
             if (proj.active && (proj.type == 263 || proj.type == 513 || proj.type == 229 || proj.type == 45 || proj.type == 280))
             {
                 proj.Kill();
@@ -305,6 +312,11 @@ public class ModifyHurtModPlayer : ModPlayer
         if (info.DamageSource.SourceProjectileType == 507)
         {
             Player.AddBuff(160, 90);
+        }
+        if (info.DamageSource.SourceProjectileType == 969)
+        {
+            Player.AddBuff(149, 60);
+            proj.Kill();
         }
         if (info.DamageSource.SourceProjectileType == 520) // frost daggerfish
         {

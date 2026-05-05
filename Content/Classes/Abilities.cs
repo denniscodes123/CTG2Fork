@@ -377,22 +377,6 @@ namespace CTG2.Content
                     }
                 }
 
-                if (projectileType == ModContent.ProjectileType<SittingDuckBobber>() && attacker.HasBuff(103))
-                {
-                    var mod = ModContent.GetInstance<CTG2>();
-                    ModPacket packet = mod.GetPacket();
-                    packet.Write((byte)MessageType.RequestClearBuff);
-                    packet.Write(attacker.whoAmI);
-                    packet.Write(BuffID.Wet);
-                    packet.Send();
-
-                    packet = Mod.GetPacket();
-                    packet.Write((byte)MessageType.FishermanPull);
-                    packet.Write(Player.whoAmI);
-                    packet.Write(attacker.whoAmI);
-                    packet.Send();
-                }
-
                 switch (projectileType)
                 {
                     case ProjectileID.HellfireArrow: // Archer ability
@@ -1213,7 +1197,21 @@ namespace CTG2.Content
 
         private void FishermanOnUse()
         {
-            Player.AddBuff(103, 4 * 60);
+            Vector2 direction = Main.MouseWorld - Player.Center;
+            direction.Normalize();
+
+            float speed = 10f;
+            Vector2 velocity = direction * speed;
+
+            Projectile.NewProjectile(
+                Player.GetSource_FromThis(),
+                Player.Center,
+                velocity,
+                969,
+                25,
+                0,
+                Player.whoAmI
+            );
 
             SoundEngine.PlaySound(SoundID.Item66, Player.Center);
         }

@@ -98,6 +98,10 @@ namespace CTG2.Content.Items.ModifiedWeps
                     item.crit = 0;
                     item.UseSound = SoundID.Item109;
                     break;
+                case ItemID.BlueMoon:
+                    item.shoot = 969;
+                    item.damage = 25;
+                    break;
                 case ItemID.Blowgun: // Tiki Priest
                     item.useTime = 25;
                     item.useAnimation = 25;

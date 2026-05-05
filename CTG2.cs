@@ -147,7 +147,6 @@ namespace CTG2
         Dash = 108,
         RequestClearBuff = 109,
         SyncClearBuff = 110,
-        FishermanPull = 111
     }
 
     public class CTG2 : Mod
@@ -1488,53 +1487,6 @@ namespace CTG2
                             dashPly.SendDash(plyy.velocity, -1, whoAmI);
 
                         break;
-                case (byte)MessageType.FishermanPull:
-                {
-                    byte victimID = reader.ReadByte();
-                    byte attackerID = reader.ReadByte();
-
-                    if (Main.netMode == NetmodeID.Server)
-                    {
-                        var modCTG = ModContent.GetInstance<CTG2>();
-                        
-                        // Need to separately send to victim or doesn't work
-                        ModPacket packet = modCTG.GetPacket();
-                        packet.Write((byte)MessageType.FishermanPull);
-                        packet.Write(victimID);
-                        packet.Write(attackerID);
-                        packet.Send(victimID, whoAmI);
-
-                        // Send to all other clients for visual sync
-                        packet = modCTG.GetPacket();
-                        packet.Write((byte)MessageType.FishermanPull);
-                        packet.Write(victimID);
-                        packet.Write(attackerID);
-                        packet.Send(-1, victimID);
-
-                        break;
-                    }
-
-                    Player victim = Main.player[victimID];
-                    Player attacker = Main.player[attackerID];
-
-                    Vector2 pullVelocity = attacker.Center - victim.Center;
-                    if (pullVelocity != Vector2.Zero)
-                    {
-                        pullVelocity.Normalize();
-                        float absY = Math.Abs(pullVelocity.Y); // 0 = fully horizontal, 1 = fully vertical
-                        float speed = MathHelper.Lerp(11f, 17f, absY);
-                        pullVelocity *= speed;
-                    }
-
-                    if (victimID == Main.myPlayer)
-                    {
-                        Main.LocalPlayer.velocity = pullVelocity;
-                    }
-                    else
-                        victim.velocity = pullVelocity;
-
-                    break;
-                }
 
                 case (byte)MessageType.DASH:
                     {

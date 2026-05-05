@@ -259,10 +259,9 @@ public class ModifyHurtModPlayer : ModPlayer
             {
                 if (proj.type == 969)
                 {
-                    Player.AddBuff(149, 60);
                     proj.Kill();
                 }
-                else if (proj.type == 263 || proj.type == 513 || proj.type == 229 || proj.type == 45 || proj.type == 280)
+                if (proj.type == 263 || proj.type == 513 || proj.type == 229 || proj.type == 45 || proj.type == 280)
                 {
                     proj.Kill();
                 }

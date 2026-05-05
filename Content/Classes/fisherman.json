@@ -35,9 +35,9 @@
       "Modded": false
     },
     {
-      "Name": "Frost Daggerfish",
-      "Type": 3197,
-      "Stack": 3,
+      "Name": "",
+      "Type": 0,
+      "Stack": 0,
       "Prefix": 0,
       "Slot": 4,
       "Modded": false
@@ -75,9 +75,9 @@
       "Modded": false
     },
     {
-      "Name": "",
-      "Type": 0,
-      "Stack": 0,
+      "Name": "Atlantic Cod",
+      "Type": 2299,
+      "Stack": 3,
       "Prefix": 0,
       "Slot": 9,
       "Modded": false

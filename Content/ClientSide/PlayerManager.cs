@@ -101,16 +101,27 @@ public class PlayerManager : ModPlayer
     {
         var modPlayer = Player.GetModPlayer<ClassSystem>();
         var victimManager = Player.GetModPlayer<PlayerManager>();
+        int killerIndex = damageSource.SourcePlayerIndex;
 
-        if (pvp)
+        if (pvp && killerIndex >= 0)
         {
-            Player killer = Main.player[damageSource.SourcePlayerIndex];
+            Player killer = Main.player[killerIndex];
             var killerManager = killer.GetModPlayer<PlayerManager>();
 
             if (killerManager.currentClass.Name == "Gladiator")
             {
                 killer.statLife += 10;
                 killer.HealEffect(10, true);
+            }
+            else if (killerManager.currentClass.Name == "Fisherman")
+            {
+                ModPacket packet = Mod.GetPacket();
+                packet.Write((byte)MessageType.GiveItemToKiller);
+                packet.Write((byte)killerIndex);
+                packet.Write((int)ItemID.AtlanticCod);
+                packet.Write((int)3);
+                packet.Write((byte)0);
+                packet.Send();
             }
 
             killerManager.kills++;

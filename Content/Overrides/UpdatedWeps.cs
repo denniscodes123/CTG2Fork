@@ -19,6 +19,8 @@ namespace CTG2.Content.Items.ModifiedWeps
         // and persist across item switches.
         public long fisherLastUsedCounter;
         public long daggerfishLastUsedCounter;
+        public long sharknadoLastUsedCounter;
+        public long chumBallLastUsedCounter;
     }
 
     public class OverloadedWeps : GlobalItem
@@ -74,6 +76,8 @@ namespace CTG2.Content.Items.ModifiedWeps
         private uint anchorLastUsedCounter = 0;
 
         private uint daggerfishDelay = 47;
+        private uint sharknadoDelay = 47;
+        private uint chumBallDelay = 47;
 
         bool playedAnchorSound = true;
 
@@ -314,6 +318,17 @@ namespace CTG2.Content.Items.ModifiedWeps
                 case ItemID.FrostDaggerfish:
                     item.damage = 28;
                     break;
+                case ItemID.Snowball:
+                    item.damage = 31;
+                    item.shoot = 408;
+                    item.shootSpeed = 12.5f;
+                    break;
+                case ItemID.ChumBucket:
+                    item.damage = 24;
+                    item.scale = 0;
+                    item.shoot = 928;
+                    item.shootSpeed = 9f;
+                    break;
             }
         }
 
@@ -326,6 +341,10 @@ namespace CTG2.Content.Items.ModifiedWeps
 
                 Projectile.NewProjectile(source, position, velocity, ProjectileID.NebulaArcanum, damage, knockback, player.whoAmI);
                 return false;
+            }
+            else if (item.type == ItemID.Snowball)
+            {
+                SoundEngine.PlaySound(SoundID.NPCDeath19, player.Center);
             }
 
             return base.Shoot(item, player, source, position, velocity, type, damage, knockback);
@@ -349,20 +368,48 @@ namespace CTG2.Content.Items.ModifiedWeps
             }
             else if (item.type == ModContent.ItemType<KingFisher>())
             {
-                if (Main.GameUpdateCount - mPlayer.fisherLastUsedCounter >= 38)
+                if (Main.GameUpdateCount - mPlayer.fisherLastUsedCounter >= fisherDelay)
                 {
                     mPlayer.fisherLastUsedCounter = Main.GameUpdateCount;
                     mPlayer.daggerfishLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.sharknadoLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.chumBallLastUsedCounter = Main.GameUpdateCount;
                     return true;
                 }
                 return false;
             }
             else if (item.type == ItemID.FrostDaggerfish)
             {
-                if (Main.GameUpdateCount - mPlayer.daggerfishLastUsedCounter >= 47)
+                if (Main.GameUpdateCount - mPlayer.daggerfishLastUsedCounter >= daggerfishDelay)
                 {
                     mPlayer.fisherLastUsedCounter = Main.GameUpdateCount;
                     mPlayer.daggerfishLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.sharknadoLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.chumBallLastUsedCounter = Main.GameUpdateCount;
+                    return true;
+                }
+                return false;
+            }
+            else if (item.type == ItemID.Snowball)
+            {
+                if (Main.GameUpdateCount - mPlayer.sharknadoLastUsedCounter >= sharknadoDelay)
+                {
+                    mPlayer.fisherLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.daggerfishLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.sharknadoLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.chumBallLastUsedCounter = Main.GameUpdateCount;
+                    return true;
+                }
+                return false;
+            }
+            else if (item.type == ItemID.ChumBucket)
+            {
+                if (Main.GameUpdateCount - mPlayer.chumBallLastUsedCounter >= chumBallDelay)
+                {
+                    mPlayer.fisherLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.daggerfishLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.sharknadoLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.chumBallLastUsedCounter = Main.GameUpdateCount;
                     return true;
                 }
                 return false;

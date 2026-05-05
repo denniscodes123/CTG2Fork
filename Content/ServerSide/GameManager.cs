@@ -484,14 +484,14 @@ public class GameManager : ModSystem
             // Reset classsystem attributes
             player.GetModPlayer<ClassSystem>().blockCounter = 1800;
             player.GetModPlayer<ClassSystem>().bombCounter = 1200;
-            player.GetModPlayer<ClassSystem>().daggerfishCounter = 1800;
+            player.GetModPlayer<ClassSystem>().fishCounter = 3600;
 
             ModPacket classSystemPacket = mod.GetPacket();
             classSystemPacket.Write((byte)MessageType.SyncClassSystemAttributes);
             classSystemPacket.Write(player.whoAmI);
             classSystemPacket.Write(1800);
             classSystemPacket.Write(1200);
-            classSystemPacket.Write(1800);
+            classSystemPacket.Write(3600);
             classSystemPacket.Send(toClient: player.whoAmI);
 
             // Remove from spectator tracking if they were spectating

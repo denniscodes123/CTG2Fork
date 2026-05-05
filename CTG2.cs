@@ -147,6 +147,7 @@ namespace CTG2
         Dash = 108,
         RequestClearBuff = 109,
         SyncClearBuff = 110,
+        GiveItemToKiller = 111
     }
 
     public class CTG2 : Mod
@@ -873,7 +874,7 @@ namespace CTG2
                     int playerIndd = reader.ReadInt32();
                     int blockCounter = reader.ReadInt32();
                     int bombCounter = reader.ReadInt32();
-                    int daggerfishCounter = reader.ReadInt32();
+                    int fishCounter = reader.ReadInt32();
 
                     if (Main.netMode == NetmodeID.Server)
                     {
@@ -882,7 +883,7 @@ namespace CTG2
                         classSystemPacket.Write(playerIndd);
                         classSystemPacket.Write(blockCounter);
                         classSystemPacket.Write(bombCounter);
-                        classSystemPacket.Write(daggerfishCounter);
+                        classSystemPacket.Write(fishCounter);
                         classSystemPacket.Send(toClient: playerIndd);
                     }
 
@@ -890,7 +891,7 @@ namespace CTG2
 
                     sys.blockCounter = blockCounter;
                     sys.bombCounter = bombCounter;
-                    sys.daggerfishCounter = daggerfishCounter;
+                    sys.fishCounter = fishCounter;
 
                     break;
             
@@ -1596,6 +1597,32 @@ namespace CTG2
                     }
                     //Main.NewText("Received Dictionary Sync successfuly");
                     break; 
+                case (byte)MessageType.GiveItemToKiller:
+                {
+                    byte killerIndex = reader.ReadByte();
+                    int itemID      = reader.ReadInt32();
+                    int stack       = reader.ReadInt32();
+                    byte prefix     = reader.ReadByte();
+
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        // Forward the packet to the killer's client only
+                        ModPacket packet = GetPacket();
+                        packet.Write((byte)MessageType.GiveItemToKiller);
+                        packet.Write(killerIndex);
+                        packet.Write(itemID);
+                        packet.Write(stack);
+                        packet.Write(prefix);
+                        packet.Send(toClient: killerIndex); // ← send ONLY to killer
+                    }
+                    else
+                    {
+                        // We are the killer's client — safe to modify our own inventory
+                        Player killer = Main.player[killerIndex];
+                        GiveItemToPlayer(killer, itemID, stack, prefix);
+                    }
+                    break;
+                }
 
                 case (byte)MessageType.RequestMakeMeAdmin:
                 {
@@ -1888,6 +1915,57 @@ namespace CTG2
             packet.Write(playerIndex);
             packet.Write(timeIntTicks);
             packet.Send();
+        }
+
+        public static void GiveItemToPlayer(Player player, int itemID, int stack, byte prefix)
+        {
+            // first, see if can combine stacks
+            for (int i = 0; i < 50; i++)
+            {
+                if (player.inventory[i].type == itemID)
+                {
+                    player.inventory[i].stack  += stack;
+                    player.inventory[i].prefix = prefix;
+
+                    return;
+                }
+            }
+
+            // next, prioritize slot 9
+            if (player.inventory[9].IsAir)
+            {
+                player.inventory[9].SetDefaults(itemID);
+                player.inventory[9].stack  = stack;
+                player.inventory[9].prefix = prefix;
+
+                return;
+            }
+
+            // search first 8 slots
+            for (int i = 0; i < 9; i++)
+            {
+                if (player.inventory[i].IsAir)
+                {
+                    player.inventory[i].SetDefaults(itemID);
+                    player.inventory[i].stack  = stack;
+                    player.inventory[i].prefix = prefix;
+
+                    return;
+                }
+            }
+
+            // search rest of inventory
+            for (int i = 10; i < 50; i++)
+            {
+                if (player.inventory[i].IsAir)
+                {
+                    player.inventory[i].SetDefaults(itemID);
+                    player.inventory[i].stack  = stack;
+                    player.inventory[i].prefix = prefix;
+
+                    return;
+                }
+            }
         }
     }
 }

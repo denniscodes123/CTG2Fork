@@ -576,7 +576,7 @@ namespace ClassesNamespace
             if (gameTime >= daggerfishCounter && playerManager.playerState == PlayerManager.PlayerState.Active && Player.team != 0) // daggerfish over time
             {
                 if (playerManager.currentClass?.Name == "Fisherman")
-                    giveItemDirect(ItemID.FrostDaggerfish, 3);
+                    giveItemDirect(ItemID.FrostDaggerfish, 1);
 
                 daggerfishCounter += 1800;
             }

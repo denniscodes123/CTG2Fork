@@ -874,6 +874,7 @@ namespace CTG2
                     int playerIndd = reader.ReadInt32();
                     int blockCounter = reader.ReadInt32();
                     int bombCounter = reader.ReadInt32();
+                    int daggerfishCounter = reader.ReadInt32();
 
                     if (Main.netMode == NetmodeID.Server)
                     {
@@ -882,6 +883,7 @@ namespace CTG2
                         classSystemPacket.Write(playerIndd);
                         classSystemPacket.Write(blockCounter);
                         classSystemPacket.Write(bombCounter);
+                        classSystemPacket.Write(daggerfishCounter);
                         classSystemPacket.Send(toClient: playerIndd);
                     }
 
@@ -889,6 +891,7 @@ namespace CTG2
 
                     sys.blockCounter = blockCounter;
                     sys.bombCounter = bombCounter;
+                    sys.daggerfishCounter = daggerfishCounter;
 
                     break;
             

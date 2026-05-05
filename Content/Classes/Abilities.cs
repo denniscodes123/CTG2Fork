@@ -344,7 +344,7 @@ namespace CTG2.Content
                     }
                 }
 
-                if (attacker.team != Player.team && projectileType == ModContent.ProjectileType<SittingDuckBobber>() && attacker.HasBuff(103))
+                if (projectileType == ModContent.ProjectileType<SittingDuckBobber>() && attacker.HasBuff(103))
                 {
                     var mod = ModContent.GetInstance<CTG2>();
                     ModPacket packet = mod.GetPacket();

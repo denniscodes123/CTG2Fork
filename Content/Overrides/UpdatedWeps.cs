@@ -13,6 +13,14 @@ using CTG2.Content.ClientSide;
 
 namespace CTG2.Content.Items.ModifiedWeps
 {
+    public class CooldownPlayer : ModPlayer
+    {
+        // Storing these here ensures they are unique to the player
+        // and persist across item switches.
+        public long fisherLastUsedCounter;
+        public long daggerfishLastUsedCounter;
+    }
+
     public class OverloadedWeps : GlobalItem
     {
 
@@ -61,13 +69,11 @@ namespace CTG2.Content.Items.ModifiedWeps
         private uint thunderZapperLastUsedCounter = 0;
 
         private uint fisherDelay = 38;
-        private uint fisherLastUsedCounter = 0;
 
         private uint anchorDelay = 120;
         private uint anchorLastUsedCounter = 0;
 
         private uint daggerfishDelay = 47;
-        private uint daggerfishLastUsedCounter = 0;
 
         bool playedAnchorSound = true;
 
@@ -324,6 +330,8 @@ namespace CTG2.Content.Items.ModifiedWeps
 
         public override bool CanUseItem(Item item, Player player)
         {
+            var mPlayer = player.GetModPlayer<CooldownPlayer>();
+
             if (item.type == ItemID.Mace)
             {
                 if (Main.GameUpdateCount - maceLastUsedCounter >= maceDelay)
@@ -337,14 +345,23 @@ namespace CTG2.Content.Items.ModifiedWeps
             }
             else if (item.type == ModContent.ItemType<KingFisher>())
             {
-                if (Main.GameUpdateCount - fisherLastUsedCounter >= fisherDelay)
+                if (Main.GameUpdateCount - mPlayer.fisherLastUsedCounter >= 38)
                 {
-                    fisherLastUsedCounter = Main.GameUpdateCount;
-
+                    mPlayer.fisherLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.daggerfishLastUsedCounter = Main.GameUpdateCount;
                     return true;
                 }
-                else
-                    return false;
+                return false;
+            }
+            else if (item.type == ItemID.FrostDaggerfish)
+            {
+                if (Main.GameUpdateCount - mPlayer.daggerfishLastUsedCounter >= 47)
+                {
+                    mPlayer.fisherLastUsedCounter = Main.GameUpdateCount;
+                    mPlayer.daggerfishLastUsedCounter = Main.GameUpdateCount;
+                    return true;
+                }
+                return false;
             }
             else if (item.type == ModContent.ItemType<FishermansAnchor>())
             {
@@ -353,17 +370,6 @@ namespace CTG2.Content.Items.ModifiedWeps
                     anchorLastUsedCounter = Main.GameUpdateCount;
 
                     playedAnchorSound = false;
-
-                    return true;
-                }
-                else
-                    return false;
-            }
-            else if (item.type == ItemID.FrostDaggerfish)
-            {
-                if (Main.GameUpdateCount - daggerfishLastUsedCounter >= daggerfishDelay)
-                {
-                    daggerfishLastUsedCounter = Main.GameUpdateCount;
 
                     return true;
                 }

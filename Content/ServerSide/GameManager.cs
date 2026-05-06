@@ -261,6 +261,8 @@ public class GameManager : ModSystem
             packetMapName.Write(mapName);
             packetMapName.Send();
         }
+
+        ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral($"Game has started! The map is {mapName}."), Color.Cyan);
     }
 
     // Pauses/Unpauses game

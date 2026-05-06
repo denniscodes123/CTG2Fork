@@ -12,6 +12,7 @@ using Terraria.ModLoader;
 using Terraria.UI;
 using Terraria.UI.Chat;
 using Terraria.Chat;
+using ReLogic.Graphics;
 
 
 namespace CTG2.Content.ClientSide;
@@ -67,7 +68,8 @@ public class UIManager : ModSystem
                 {
                     if (true)
                     {
-                        DrawMatchTimer();
+                        DrawTopUI();
+                        DrawAbilityCooldown();
                     }
                     return true;
                 },
@@ -77,19 +79,12 @@ public class UIManager : ModSystem
     }
 
 
-    private void DrawMatchTimer()
+    private void DrawTopUI()
     {
-        string timeText = "";
-        Vector2 timeRow = new Vector2(Main.screenWidth - 320, 350);
-        Vector2 blueGemRow = new Vector2(Main.screenWidth - 320, 500);
-        Vector2 blueGemRow2 = new Vector2(Main.screenWidth - 320, 550);
-        Vector2 redGemRow = new Vector2(Main.screenWidth - 320, 600);
-        Vector2 redGemRow2 = new Vector2(Main.screenWidth - 320, 650);
-        
-        Color textColor = Color.White;
         int matchStage = GameInfo.matchStage;
-        if (matchStage == 0) return;
-        
+
+        if (matchStage == 0 || matchStage == 3) return;
+
         int matchTime = GameInfo.matchTime;
         int secondsElapsed = matchTime / 60 - GameInfo.matchStartTime / 60;
         int minutesElapsed = secondsElapsed / 60;
@@ -97,192 +92,126 @@ public class UIManager : ModSystem
 
         int capDifference = GameInfo.blueCaptures - GameInfo.redCaptures;
 
+        // --- Build center time text ---
+        string timeText;
         if (matchTime < GameInfo.matchStartTime)
         {
-            timeText = $"Class selection ends in: {(int) (GameInfo.matchStartTime / 60) - matchTime / 60}s";
+            timeText = $"{(int)(GameInfo.matchStartTime / 60) - matchTime / 60}s";
         }
-        else if (Main.LocalPlayer.GetModPlayer<PlayerManager>().classSelectionTimer > 0 && Main.LocalPlayer.GetModPlayer<PlayerManager>().playerState == PlayerManager.PlayerState.ClassSelection)
+        else if (Main.LocalPlayer.GetModPlayer<PlayerManager>().classSelectionTimer > 0
+            && Main.LocalPlayer.GetModPlayer<PlayerManager>().playerState == PlayerManager.PlayerState.ClassSelection)
         {
-            timeText = $"Class selection ends in: {(int) (Main.LocalPlayer.GetModPlayer<PlayerManager>().classSelectionTimer) / 60}s";
+            timeText = $"{(int)(Main.LocalPlayer.GetModPlayer<PlayerManager>().classSelectionTimer) / 60}s";
         }
         else if (secondsElapsed > 600 && capDifference != 0)
         {
-            timeText = $"The gem holder must die to end the game!";
-        }
-        else if (GameInfo.matchStage == 0 || GameInfo.matchStage == 3)
-        {
-            timeText = "";
+            timeText = "Kill gem holder!";
         }
         else
         {
-            timeText = $"Match length: {minutesElapsed}:{remainder.ToString("D2")}";
+            timeText = $"{minutesElapsed}:{remainder.ToString("D2")}";
         }
-        /*GameInfo.blueGemCarrier;*/
-        string blueGemStatus = GameInfo.blueGemCarrier;
-        var redGemStatus = GameInfo.redGemCarrier;
-        var blueGemPosition = GameInfo.blueGemX;
-        var redGemPosition = GameInfo.redGemX;
 
-        var totalBars = 20;
-        var blueBars = (int)Math.Clamp(Math.Round(blueGemPosition / 100f * totalBars), 0, totalBars);
-        var redBars = (int)Math.Clamp(Math.Round(redGemPosition / 100f * totalBars), 0, totalBars);
-        // Draw Gem Position like in CTG
-        string blueGemIndicator  = "[c/0077B6:⬢"+ new string('▮', blueBars) + "]" + "[i:1524]" + "[c/FFFFFF:"+ new string('▮', totalBars-blueBars) + "⬢]";
+        // --- Layout constants ---
+        DynamicSpriteFont font = FontAssets.MouseText.Value;
+        float scale = 1f;
+        int boxPaddingX = 14;
+        int boxPaddingY = 6;
+        int boxGap = 4;
+        int topY = 10;
 
-        string redGemIndicator = "[c/FFFFFF:⬢"+ new string('▮', totalBars-redBars) + "]" + "[i:1526]" + "[c/FF0000:"+ new string('▮', redBars) + "⬢]";
-        
-        if (!string.IsNullOrEmpty(timeText))
+        // Measure each box's text
+        Vector2 timeSize   = font.MeasureString(timeText) * scale;
+        string redStr      = $"{GameInfo.redCaptures}";
+        string blueStr     = $"{GameInfo.blueCaptures}";
+        Vector2 redSize    = font.MeasureString(redStr) * scale;
+        Vector2 blueSize   = font.MeasureString(blueStr) * scale;
+
+        // Box dimensions
+        int timeW   = (int)timeSize.X  + boxPaddingX * 2;
+        int timeH   = (int)timeSize.Y  + boxPaddingY * 2;
+        int redW    = (int)redSize.X   + boxPaddingX * 2;
+        int blueW   = (int)blueSize.X  + boxPaddingX * 2;
+        int boxH    = timeH; // all boxes same height
+
+        // Total width, centered on screen
+        int totalW  = redW + boxGap + timeW + boxGap + blueW;
+        int startX  = (Main.screenWidth - totalW) / 2;
+
+        // Box positions
+        Rectangle redBox   = new Rectangle(startX,                        topY, redW,  boxH);
+        Rectangle timeBox  = new Rectangle(startX + redW + boxGap,        topY, timeW, boxH);
+        Rectangle blueBox  = new Rectangle(startX + redW + boxGap + timeW + boxGap, topY, blueW, boxH);
+
+        // --- Draw boxes ---
+        Texture2D pixel = TextureAssets.MagicPixel.Value;
+
+        // Red box background + border
+        Main.spriteBatch.Draw(pixel, redBox, Color.DarkRed * 0.85f);
+        DrawBorder(Main.spriteBatch, pixel, redBox, Color.Red, 2);
+
+        // White/neutral time box background + border
+        Main.spriteBatch.Draw(pixel, timeBox, Color.Black * 0.75f);
+        DrawBorder(Main.spriteBatch, pixel, timeBox, Color.White, 2);
+
+        // Blue box background + border
+        Main.spriteBatch.Draw(pixel, blueBox, new Color(0, 60, 140) * 0.85f);
+        DrawBorder(Main.spriteBatch, pixel, blueBox, new Color(50, 150, 255), 2);
+
+        // --- Draw text centered in each box ---
+        Vector2 redTextPos  = new Vector2(redBox.X  + (redBox.Width  - redSize.X)  / 2,
+                                        redBox.Y  + (redBox.Height - redSize.Y)  / 2);
+        Vector2 timeTextPos = new Vector2(timeBox.X + (timeBox.Width - timeSize.X) / 2,
+                                        timeBox.Y + (timeBox.Height - timeSize.Y) / 2);
+        Vector2 blueTextPos = new Vector2(blueBox.X + (blueBox.Width - blueSize.X) / 2,
+                                        blueBox.Y + (blueBox.Height - blueSize.Y) / 2);
+
+        Utils.DrawBorderString(Main.spriteBatch, redStr,   redTextPos,  Color.White, scale);
+        Utils.DrawBorderString(Main.spriteBatch, timeText, timeTextPos, Color.White, scale);
+        Utils.DrawBorderString(Main.spriteBatch, blueStr,  blueTextPos, Color.White, scale);
+    }
+
+    // Helper to draw a rectangle outline
+    private void DrawBorder(SpriteBatch sb, Texture2D pixel, Rectangle rect, Color color, int thickness)
+    {
+        // Top
+        sb.Draw(pixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
+        // Bottom
+        sb.Draw(pixel, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
+        // Left
+        sb.Draw(pixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
+        // Right
+        sb.Draw(pixel, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
+    }
+
+    private void DrawAbilityCooldown()
+    {
+        int matchStage = GameInfo.matchStage;
+        if (matchStage == 0 || matchStage == 3) return;
+
+        var abilities = Main.LocalPlayer.GetModPlayer<Abilities>();
+        int cooldown = abilities.cooldown;
+
+        Texture2D icon = ModContent.Request<Texture2D>("CTG2/Content/ClientSide/AbilityIcon").Value;
+
+        int iconSize = 32;
+        int centerX = Main.screenWidth / 2;
+        int centerY = Main.screenHeight - 32;
+        Rectangle destRect = new Rectangle(centerX - iconSize / 2, centerY - iconSize / 2, iconSize, iconSize);
+
+        if (cooldown <= 0)
         {
-            Utils.DrawBorderString(Main.spriteBatch, timeText, timeRow, textColor);
-        }
-        if (!string.IsNullOrEmpty(blueGemStatus))
-        {
-            Color blueColor = new Color(0, 119, 182);
-            Utils.DrawBorderString(Main.spriteBatch, blueGemStatus, blueGemRow, blueColor);
-        }
-        if (!string.IsNullOrEmpty(redGemStatus))
-        {
-            Utils.DrawBorderString(Main.spriteBatch, redGemStatus, redGemRow, Color.Red);
-        }
-        ChatManager.DrawColorCodedStringWithShadow(
-            Main.spriteBatch,
-            FontAssets.MouseText.Value,
-            blueGemIndicator,
-            blueGemRow2,
-            Color.White,
-            0,
-            Vector2.Zero,
-            Vector2.One
-        );
-        ChatManager.DrawColorCodedStringWithShadow(
-            Main.spriteBatch,
-            FontAssets.MouseText.Value,
-            redGemIndicator,
-            redGemRow2,
-            Color.White,
-            0,
-            Vector2.Zero,
-            Vector2.One
-        );
-        // // Show gem carrier HP if gem is captured
-        // Vector2 carrierHpPos = new Vector2(Main.screenWidth - 320, 700);
-
-        // if (GameInfo.blueGemCarrier != "At Base" && !string.IsNullOrEmpty(GameInfo.blueGemCarrier))
-        // {
-    
-        //     for (int i = 0; i < Main.maxPlayers; i++)
-        //     {
-        //         Player carrier = Main.player[i];
-    
-        //         if (carrier.active && carrier.name == GameInfo.blueGemCarrier)
-        //         {
-                
-        //             string hpText = $"{carrier.name}: {carrier.statLife}/{carrier.statLifeMax2}";
-        //             Utils.DrawBorderString(Main.spriteBatch, hpText, carrierHpPos, Color.Cyan);
-                  
-        //             carrierHpPos.Y += 40; 
-                    
-        //             break; 
-        //         }
-        //     }
-        // }
-
-
-        // if (GameInfo.redGemCarrier != "At Base" && !string.IsNullOrEmpty(GameInfo.redGemCarrier))
-        // {
-        //     for (int i = 0; i < Main.maxPlayers; i++)
-        //     {
-        //         Player carrier = Main.player[i];
-        //         if (carrier.active && carrier.name == GameInfo.redGemCarrier)
-        //         {
-        //             string hpText = $"{carrier.name}: {carrier.statLife}/{carrier.statLifeMax2}";
-        //             Utils.DrawBorderString(Main.spriteBatch, hpText, carrierHpPos, Color.Red);
-        //             break; 
-        //         }
-        //     }
-        // }
-
-        // draw ability timer
-        int cooldown = Main.LocalPlayer.GetModPlayer<Abilities>().cooldown;
-        string abilText = $"Ability cooldown: {cooldown / 60}s";
-        Vector2 abilPos = new Vector2(Main.screenWidth - 320, 450);
-        Color abilCol = Color.Yellow;
-
-        if (cooldown == 0)
-        {
-            Utils.DrawBorderString(Main.spriteBatch, "Ability ready!", abilPos, abilCol);
+            Main.spriteBatch.Draw(icon, destRect, Color.White);
         }
         else
         {
-            Utils.DrawBorderString(Main.spriteBatch, abilText, abilPos, abilCol);
+            Main.spriteBatch.Draw(icon, destRect, Color.Gray * 0.6f);
+
+            DynamicSpriteFont font = FontAssets.MouseText.Value;
+            string cdText = $"{(int)Math.Ceiling(cooldown / 60f)}";
+            Vector2 textSize = font.MeasureString(cdText);
+            Vector2 textPos = new Vector2(centerX - textSize.X / 2f, centerY - textSize.Y / 2f);
+            Utils.DrawBorderString(Main.spriteBatch, cdText, textPos, Color.White);
         }
-
-        //draw map name
-        string mapText = $"Map: {GameInfo.mapName}";
-        Vector2 mapPos = new Vector2(Main.screenWidth - 320, 400);
-        Color mapCol = Color.White;
-
-        Utils.DrawBorderString(Main.spriteBatch, mapText, mapPos, mapCol);
-
-        //draw team sizes
-        string teamText = $"Team size: [c/0077B6:{GameInfo.blueTeamSize}] v [c/FF0000:{GameInfo.redTeamSize}]";
-        Vector2 teamTextPos = new Vector2(Main.screenWidth - 320, 325);
-
-        ChatManager.DrawColorCodedStringWithShadow(
-            Main.spriteBatch,
-            FontAssets.MouseText.Value,
-            teamText,
-            teamTextPos,
-            Color.White,
-            0,
-            Vector2.Zero,
-            Vector2.One
-        );
-
-        //draw cap attempt counters
-        string captures = $"Gem captures: [c/0077B6:{GameInfo.blueCaptures}] v [c/FF0000:{GameInfo.redCaptures}]";
-        Vector2 capturesPos = new Vector2(Main.screenWidth - 320, 675);
-
-        ChatManager.DrawColorCodedStringWithShadow(
-            Main.spriteBatch,
-            FontAssets.MouseText.Value,
-            captures,
-            capturesPos,
-            Color.White,
-            0,
-            Vector2.Zero,
-            Vector2.One
-        );
-
-        //draw cap progress counters
-        // string progress = $"Furthest gem carry: [c/0077B6:{GameInfo.blueFurthest}%] v [c/FF0000:{GameInfo.redFurthest}%]";
-        // Vector2 progressPos = new Vector2(Main.screenWidth - 320, 675);
-
-        // ChatManager.DrawColorCodedStringWithShadow(
-        //     Main.spriteBatch,
-        //     FontAssets.MouseText.Value,
-        //     progress,
-        //     progressPos,
-        //     Color.White,
-        //     0,
-        //     Vector2.Zero,
-        //     Vector2.One
-        // );
-
-        //draw dirt timer
-        int secondsPassed = matchTime / 60 - GameInfo.matchStartTime / 60;
-        int secondsRemaining = 900 - secondsPassed;
-        int dirtSeconds = secondsRemaining % 30;
-        string dirtText = (secondsRemaining >= 600 && secondsRemaining < 900) ? $"Time left until dirt received: {dirtSeconds}s" : "No more dirt will be received!";
-        Vector2 dirtRow = new Vector2(Main.screenWidth - 320, 375);
-        if (matchStage == 2)
-            Utils.DrawBorderString(Main.spriteBatch, dirtText, dirtRow, Color.White);
-        //if (matchTime % 60 == 0) Main.NewText(GameInfo.blueGemCarrier);
-
-        //draw kdr
-        string kdrText = $"Kills: {Main.LocalPlayer.GetModPlayer<PlayerManager>().kills}  |  Deaths: {Main.LocalPlayer.GetModPlayer<PlayerManager>().deaths}  |  Damage: {Main.LocalPlayer.GetModPlayer<PlayerManager>().damage}";
-        Vector2 kdrRow = new Vector2(Main.screenWidth - 320, 725);
-        if (matchStage == 2)
-            Utils.DrawBorderString(Main.spriteBatch, kdrText, kdrRow, Color.White);
     }
 }

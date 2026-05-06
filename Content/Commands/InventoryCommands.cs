@@ -297,6 +297,8 @@ namespace CTG2.Content.Commands
             player.GetModPlayer<ClassSystem>().currentHP = inventoryData.HealthPoints;
             player.GetModPlayer<ClassSystem>().currentMana  = inventoryData.ManaPoints;
 
+            player.statLifeMax = player.GetModPlayer<ClassSystem>().currentHP;
+
             Main.NewText("Inventory loaded successfully.", Microsoft.Xna.Framework.Color.LightGreen);
         }
     }

@@ -270,6 +270,47 @@ namespace CTG2
             On_Sign.TextSign -= RestoreSignText;
         }
 
+        public bool ApplyGamemodeChange(string mode, string source = "unknown")
+        {
+            string normalizedMode = mode?.Trim().ToLowerInvariant();
+            var managerForServer = ModContent.GetInstance<GameManager>();
+
+            switch (normalizedMode)
+            {
+                case "pubs":
+                    managerForServer.pubsConfig = true;
+                    managerForServer.scrimsConfig = false;
+                    managerForServer.rngConfig = false;
+                    break;
+                case "scrims":
+                    managerForServer.pubsConfig = false;
+                    managerForServer.scrimsConfig = true;
+                    managerForServer.rngConfig = false;
+                    break;
+                case "rng":
+                    managerForServer.pubsConfig = true;
+                    managerForServer.scrimsConfig = false;
+                    managerForServer.rngConfig = true;
+                    break;
+                default:
+                    return false;
+            }
+
+            Logger.Info($"Gamemode set to {normalizedMode}. Source: {source}");
+
+            if (Main.netMode == NetmodeID.Server)
+            {
+                ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral($"Gamemode set to {normalizedMode}."), Color.Green);
+
+                ModPacket syncPacket = GetPacket();
+                syncPacket.Write((byte)MessageType.UpdateGamemode);
+                syncPacket.Write(normalizedMode);
+                syncPacket.Send();
+            }
+
+            return true;
+        }
+
         public override void HandlePacket(BinaryReader reader, int whoAmI)
         {
             // GameManager
@@ -1448,41 +1489,9 @@ namespace CTG2
                         // Read the mode once
                         string mode = reader.ReadString();
 
-                        var managerForServer = ModContent.GetInstance<GameManager>();
                         if (Main.netMode == NetmodeID.Server)
                         {
-                            // Server-side: update authoritative gamemode and broadcast to clients
-                            if (mode == "pubs")
-                            {
-                                managerForServer.pubsConfig = true;
-                                managerForServer.scrimsConfig = false;
-                                managerForServer.rngConfig = false;
-                            }
-                            else if (mode == "scrims")
-                            {
-                                managerForServer.pubsConfig = false;
-                                managerForServer.scrimsConfig = true;
-                                managerForServer.rngConfig = false;
-                            }
-                            else if (mode == "rng")
-                            {
-                                managerForServer.pubsConfig = true;
-                                managerForServer.scrimsConfig = false;
-                                managerForServer.rngConfig = true;
-                            }
-                            else
-                            {
-                                managerForServer.pubsConfig = false;
-                                managerForServer.scrimsConfig = false;
-                                managerForServer.rngConfig = false;
-                            }
-
-                            ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral($"Gamemode set to {mode}."), Color.Green);
-
-                            ModPacket syncPacket = GetPacket();
-                            syncPacket.Write((byte)MessageType.UpdateGamemode);
-                            syncPacket.Write(mode);
-                            syncPacket.Send();
+                            ApplyGamemodeChange(mode, $"packet from player {whoAmI}");
                         }
                         else
                         {

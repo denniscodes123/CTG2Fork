@@ -19,7 +19,7 @@ namespace CTG2.Content.Functionality
             recipeFish1.Register();
 
             Recipe recipeFish2 = Recipe.Create(ItemID.BombFish, 1);
-            recipeFish2.AddIngredient(ItemID.AtlanticCod, 3);
+            recipeFish2.AddIngredient(ItemID.AtlanticCod, 2);
             recipeFish2.Register();
 
             Recipe recipeFish3 = Recipe.Create(ItemID.Snowball, 1);

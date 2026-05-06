@@ -20,12 +20,12 @@ public class GemDrawLayer : PlayerDrawLayer
         Player player = drawInfo.drawPlayer;
         Texture2D gemTexture = null;
 
-        if (!string.IsNullOrEmpty(GameInfo.blueGemCarrier) && player.name == GameInfo.blueGemCarrierName)
+        if (!string.IsNullOrEmpty(GameInfo.blueGemCarrierName) && player.name == GameInfo.blueGemCarrierName)
         {
             gemTexture = Terraria.GameContent.TextureAssets.Item[ItemID.LargeSapphire].Value;
         }
 
-        else if (!string.IsNullOrEmpty(GameInfo.redGemCarrier) && player.name == GameInfo.redGemCarrierName)
+        else if (!string.IsNullOrEmpty(GameInfo.redGemCarrierName) && player.name == GameInfo.redGemCarrierName)
         {
             gemTexture = Terraria.GameContent.TextureAssets.Item[ItemID.LargeRuby].Value;
         }

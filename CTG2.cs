@@ -761,13 +761,40 @@ namespace CTG2
                     GameInfo.redGemX = reader.ReadInt32();
                     break;
                 case (byte)MessageType.UpdateBlueGemCarrier:
-                    GameInfo.blueGemCarrier = reader.ReadString();
-                    GameInfo.blueGemCarrierName = reader.ReadString();
+                {
+                    string blueGemCarrier = reader.ReadString();
+                    string blueGemCarrierName = reader.ReadString();
+                    GameInfo.blueGemCarrier = blueGemCarrier;
+                    GameInfo.blueGemCarrierName = blueGemCarrierName;
+
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        ModPacket updateCarrier = mod.GetPacket();
+                        updateCarrier.Write((byte)MessageType.UpdateBlueGemCarrier);
+                        updateCarrier.Write(blueGemCarrier);
+                        updateCarrier.Write(blueGemCarrierName);
+                        updateCarrier.Send(-1);
+                    }
                     break;
+                }
                 case (byte)MessageType.UpdateRedGemCarrier:
-                    GameInfo.redGemCarrier = reader.ReadString();
-                    GameInfo.redGemCarrierName = reader.ReadString();
+                {
+                    string redGemCarrier = reader.ReadString();
+                    string redGemCarrierName = reader.ReadString();
+                    GameInfo.redGemCarrier = redGemCarrier;
+                    GameInfo.redGemCarrierName = redGemCarrierName;
+
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        ModPacket updateCarrier = mod.GetPacket();
+                        updateCarrier.Write((byte)MessageType.UpdateRedGemCarrier);
+                        updateCarrier.Write(redGemCarrier);
+                        updateCarrier.Write(redGemCarrierName);
+                        updateCarrier.Send(-1);
+                    }
+
                     break;
+                }
                 case (byte)MessageType.UpdateOvertime:
                     GameInfo.overtime = reader.ReadBoolean();
                     break;
@@ -1665,6 +1692,14 @@ namespace CTG2
 
                     gem.IsHeld = true;
                     gem.HeldBy = heldByPlayer;
+
+                    string carrierName = Main.player[heldByPlayer].name;
+
+                    if (gemId == 1)
+                        GameInfo.redGemCarrierName = carrierName;
+                    else
+                        GameInfo.blueGemCarrierName = carrierName;
+
                     gem.IsPickupPending = false; // clear pending on all clients
 
                     break;

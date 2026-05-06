@@ -16,7 +16,7 @@ public class Gem
 {
     public bool IsHeld { get; set;}
     public int HeldBy {get; set;}
-    
+    public bool IsPickupPending {get; set;}
     public bool IsCaptured {get; set;}
     
     
@@ -100,6 +100,13 @@ public class Gem
             // Broadcast to everyone
             ChatHelper.BroadcastChatMessage(captureText, Color.Aqua);
 
+            // Play capture sound
+            var mod = ModContent.GetInstance<CTG2>();
+            ModPacket packet = mod.GetPacket();
+            packet.Write((byte)MessageType.RequestAudio);
+            packet.Write("CTG2/Content/ServerSide/GemCapture");
+            packet.Send();
+
             if (carrier.team == 1)
             {
                 int projectileIndex = Projectile.NewProjectile(
@@ -176,66 +183,33 @@ public class GemFunctionality : ModPlayer
         Player player = Main.LocalPlayer;
         PlayerManager playerManager = player.GetModPlayer<PlayerManager>();
 
-        if (player.team == 3 && player.Hitbox.Intersects(redGem.GemHitbox) && !redGem.IsHeld && !player.dead && !player.ghost) //red gem pickup code
+        // In GemFunctionality.PreUpdate() — replace the pickup block:
+
+        if (player.team == 3 && player.Hitbox.Intersects(redGem.GemHitbox) 
+            && !redGem.IsHeld && !redGem.IsPickupPending   // <-- new flag
+            && !player.dead && !player.ghost)
         {
-            redGem.IsHeld = true;
-            redGem.HeldBy = player.whoAmI;
+            redGem.IsPickupPending = true; // prevent spamming requests
 
-            //need packets to update gem state from client->server side here
-
-            ModPacket packetIsHeld = mod.GetPacket();
-            packetIsHeld.Write((byte)MessageType.UpdateIsHeld);
-            packetIsHeld.Write(1);
-            packetIsHeld.Write(true);
-            packetIsHeld.Send();
-
-            ModPacket packetHeldBy = mod.GetPacket();
-            packetHeldBy.Write((byte)MessageType.UpdateHeldBy);
-            packetHeldBy.Write(1);
-            packetHeldBy.Write(player.whoAmI);
-            packetHeldBy.Send();
-
-            ModPacket packetText = mod.GetPacket();
-            packetText.Write((byte)MessageType.RequestChatColored);
-            packetText.Write($"{player.name} has picked up the red team's gem!");
-            packetText.Write(Color.Red.PackedValue);
-            packetText.Send(); //send chat pickup text
-
-            ModPacket packetAudio = mod.GetPacket();
-            packetAudio.Write((byte)MessageType.RequestAudioClientSide);
-            packetAudio.Write("CTG2/Content/ServerSide/GemPickup");
-            packetAudio.Send(); //send gem pickup audio
+            ModPacket packet = mod.GetPacket();
+            packet.Write((byte)MessageType.RequestPickup);
+            packet.Write(1);                  // gem ID
+            packet.Write(player.whoAmI);
+            packet.Send();
         }
-        else if (player.team == 1 && player.Hitbox.Intersects(blueGem.GemHitbox) && !blueGem.IsHeld && !player.dead && !player.ghost) //blue gem pickup code
+        // In GemFunctionality.PreUpdate() — replace the pickup block:
+
+        else if (player.team == 1 && player.Hitbox.Intersects(blueGem.GemHitbox) 
+            && !blueGem.IsHeld && !blueGem.IsPickupPending   // <-- new flag
+            && !player.dead && !player.ghost)
         {
-            blueGem.IsHeld = true;
-            blueGem.HeldBy = player.whoAmI;
-            Color blueColor = new Color(0, 119, 182);
-            
-            //need packets to update gem state from client->server side here
+            blueGem.IsPickupPending = true; // prevent spamming requests
 
-            ModPacket packetIsHeld = mod.GetPacket();
-            packetIsHeld.Write((byte)MessageType.UpdateIsHeld);
-            packetIsHeld.Write(2);
-            packetIsHeld.Write(true);
-            packetIsHeld.Send();
-
-            ModPacket packetHeldBy = mod.GetPacket();
-            packetHeldBy.Write((byte)MessageType.UpdateHeldBy);
-            packetHeldBy.Write(2);
-            packetHeldBy.Write(player.whoAmI);
-            packetHeldBy.Send();
-
-            ModPacket packetText = mod.GetPacket();
-            packetText.Write((byte)MessageType.RequestChatColored);
-            packetText.Write($"{player.name} has picked up the blue team's gem!");
-            packetText.Write(blueColor.PackedValue);
-            packetText.Send(); //send chat pickup text
-
-            ModPacket packetAudio = mod.GetPacket();
-            packetAudio.Write((byte)MessageType.RequestAudioClientSide);
-            packetAudio.Write("CTG2/Content/ServerSide/GemPickup");
-            packetAudio.Send(); //send gem pickup audio
+            ModPacket packet = mod.GetPacket();
+            packet.Write((byte)MessageType.RequestPickup);
+            packet.Write(2);                  // gem ID
+            packet.Write(player.whoAmI);
+            packet.Send();
         }
 
         if (redGem.IsHeld && redGem.HeldBy == player.whoAmI && ((player.dead && player.team == 3) || player.ghost))
@@ -307,6 +281,11 @@ public class GemFunctionality : ModPlayer
             packetCapture.Write(Color.Red.PackedValue);
             packetCapture.Send(); //send chat capture text
 
+            ModPacket packetSound = mod.GetPacket();
+            packetSound.Write((byte)MessageType.RequestAudio);
+            packetSound.Write("CTG2/Content/ServerSide/GemCapture");
+            packetSound.Send();
+
             if (player.team == 3)
             {
                 int projectileIndex = Projectile.NewProjectile(
@@ -345,6 +324,11 @@ public class GemFunctionality : ModPlayer
             packetCapture.Write($"{player.name} has captured the blue team's gem!");
             packetCapture.Write(blueColor.PackedValue);
             packetCapture.Send(); //send chat capture text
+
+            ModPacket packetSound = mod.GetPacket();
+            packetSound.Write((byte)MessageType.RequestAudio);
+            packetSound.Write("CTG2/Content/ServerSide/GemCapture");
+            packetSound.Send();
 
             if (player.team == 1)
             {

@@ -24,7 +24,7 @@ namespace CTG2.Commands
             UnbreakableTiles.AllowBreaking = !UnbreakableTiles.AllowBreaking;
 
             string status = UnbreakableTiles.AllowBreaking ? "enabled" : "disabled";
-            caller.Reply($"[CTG] Break mode is now {status}.", Color.Green);
+            caller.Reply($"Break mode is now {status}.", Color.Green);
         }
     }
 }

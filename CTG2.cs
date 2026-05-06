@@ -147,7 +147,10 @@ namespace CTG2
         Dash = 108,
         RequestClearBuff = 109,
         SyncClearBuff = 110,
-        GiveItemToKiller = 111
+        GiveItemToKiller = 111,
+        RequestPickup = 112,
+        ConfirmPickup = 113,
+        ClearMapQueue = 114
     }
 
     public class CTG2 : Mod
@@ -512,16 +515,13 @@ namespace CTG2
                 case (byte)MessageType.RequestNextMap:
                     string receivedMapName = reader.ReadString();
 
-
                     if (Enum.TryParse<MapTypes>(receivedMapName, true, out MapTypes mapType))
                     {
-
                         manager.queueMap(mapType);
                     }
-                    else
-                    {
-                        // log?
-                    }
+                    break;
+                case (byte)MessageType.ClearMapQueue:
+                    manager.clearMapQueue();
                     break;
                 case (byte)MessageType.RequestChat:
                     string message = reader.ReadString();
@@ -1086,8 +1086,20 @@ namespace CTG2
                 case (byte)MessageType.RequestAudio:
                 {
                     string filepath = reader.ReadString();
-                    SoundStyle sound = new SoundStyle(filepath);
-                    SoundEngine.PlaySound(sound);
+
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        // Forward to all clients
+                        ModPacket packet = ModContent.GetInstance<CTG2>().GetPacket();
+                        packet.Write((byte)MessageType.RequestAudio);
+                        packet.Write(filepath);
+                        packet.Send(); // -1 = all clients
+                    }
+                    else
+                    {
+                        SoundStyle sound = new SoundStyle(filepath);
+                        SoundEngine.PlaySound(sound);
+                    }
                     break;
                 }
                 case (byte)MessageType.RequestAudioClientSide:
@@ -1597,6 +1609,63 @@ namespace CTG2
                     }
                     //Main.NewText("Received Dictionary Sync successfuly");
                     break; 
+                // In your HandlePacket / ModSystem that processes packets:
+
+                case (byte)MessageType.RequestPickup:
+                {
+                    int gemId = reader.ReadInt32();
+                    int requestingPlayer = reader.ReadInt32();
+
+                    var gem = gemId == 1 
+                        ? ModContent.GetInstance<GameManager>().RedGem 
+                        : ModContent.GetInstance<GameManager>().BlueGem;
+
+                    if (Main.netMode == NetmodeID.Server && !gem.IsHeld)
+                    {
+                        // Server is the single source of truth — first request wins
+                        gem.IsHeld = true;
+                        gem.HeldBy = requestingPlayer;
+
+                        // Broadcast confirmation to ALL clients
+                        ModPacket confirm = mod.GetPacket();
+                        confirm.Write((byte)MessageType.ConfirmPickup);
+                        confirm.Write(gemId);
+                        confirm.Write(requestingPlayer);
+                        confirm.Send(); // no toClient = broadcasts to everyone
+
+                        Player carrier = Main.player[requestingPlayer];
+
+                        ModPacket packetText = mod.GetPacket();
+                        packetText.Write((byte)MessageType.RequestChatColored);
+                        packetText.Write($"{carrier.name} has picked up the red team's gem!");
+                        packetText.Write(Color.Red.PackedValue);
+                        packetText.Send(); //send chat pickup text
+
+                        ModPacket packetAudio = mod.GetPacket();
+                        packetAudio.Write((byte)MessageType.RequestAudio);
+                        packetAudio.Write("CTG2/Content/ServerSide/GemPickup");
+                        packetAudio.Send(); //send gem pickup audio
+                    }
+                    // If gem.IsHeld is already true, the request is silently rejected.
+                    // The requesting client's IsPickupPending will stay true until
+                    // they receive a ConfirmPickup for someone else, resetting it.
+                    break;
+                }
+                case (byte)MessageType.ConfirmPickup:
+                {
+                    int gemId = reader.ReadInt32();
+                    int heldByPlayer = reader.ReadInt32();
+
+                    var gem = gemId == 1 
+                        ? ModContent.GetInstance<GameManager>().RedGem 
+                        : ModContent.GetInstance<GameManager>().BlueGem;
+
+                    gem.IsHeld = true;
+                    gem.HeldBy = heldByPlayer;
+                    gem.IsPickupPending = false; // clear pending on all clients
+
+                    break;
+                }
                 case (byte)MessageType.GiveItemToKiller:
                 {
                     byte killerIndex = reader.ReadByte();

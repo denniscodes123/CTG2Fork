@@ -964,6 +964,11 @@ public class GameManager : ModSystem
         mapQueue.Enqueue(mapType);
     }
 
+    public void clearMapQueue()
+    {
+        mapQueue.Clear();
+    }
+
     public bool IsPlayerSpectator(int playerIndex)
     {
         return playerSpectatorStatus.GetValueOrDefault(playerIndex, false);

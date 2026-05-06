@@ -20,6 +20,7 @@ public class ProtectedRegionTile : GlobalTile
         new Rectangle(1190, 666, 98, 83), //red base
         new Rectangle(1659, 584, 115, 51), //red class selection
         new Rectangle(2411, 580, 115, 54), //blue class selection
+        new Rectangle(0, 225, 1400, 263)
     };
     public override bool CanPlace(int i, int j, int type)
     {

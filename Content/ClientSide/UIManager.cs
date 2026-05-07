@@ -66,18 +66,14 @@ public class UIManager : ModSystem
                 "CTG2: Match Timer",
                 delegate
                 {
-                    if (true)
-                    {
-                        DrawTopUI();
-                        DrawAbilityCooldown();
-                    }
+                    DrawTopUI();
+                    DrawAbilityCooldown();
                     return true;
                 },
                 InterfaceScaleType.UI)
             );
         }
     }
-
 
     private void DrawTopUI()
     {
@@ -92,83 +88,148 @@ public class UIManager : ModSystem
 
         int capDifference = GameInfo.blueCaptures - GameInfo.redCaptures;
 
-        // --- Build center time text ---
         string timeText;
         if (matchTime < GameInfo.matchStartTime)
-        {
             timeText = $"{(int)(GameInfo.matchStartTime / 60) - matchTime / 60}s";
-        }
         else if (Main.LocalPlayer.GetModPlayer<PlayerManager>().classSelectionTimer > 0
             && Main.LocalPlayer.GetModPlayer<PlayerManager>().playerState == PlayerManager.PlayerState.ClassSelection)
-        {
             timeText = $"{(int)(Main.LocalPlayer.GetModPlayer<PlayerManager>().classSelectionTimer) / 60}s";
-        }
         else if (secondsElapsed > 600 && capDifference != 0)
-        {
             timeText = "Kill gem holder!";
-        }
         else
-        {
             timeText = $"{minutesElapsed}:{remainder.ToString("D2")}";
-        }
 
-        // --- Layout constants ---
         DynamicSpriteFont font = FontAssets.MouseText.Value;
         float scale = 1f;
         int boxPaddingX = 14;
-        int boxPaddingY = 6;
-        int boxGap = 4;
+        int boxPaddingY = 4;
+        int boxGap = 6;
         int topY = 10;
+        int hpBarHeight = 20;
+        int hpBarPaddingTop = -4;    // gap between progress bar box bottom and hp bar top
+        int hpBarPaddingBottom = 10; // gap between hp bar bottom and box bottom
+        float hpTextOffsetY = 10f; // tweak to center text vertically in hp bar, generally height / 2
 
-        // Measure each box's text
-        Vector2 timeSize   = font.MeasureString(timeText) * scale;
-        string redStr      = $"{GameInfo.redCaptures}";
-        string blueStr     = $"{GameInfo.blueCaptures}";
-        Vector2 redSize    = font.MeasureString(redStr) * scale;
-        Vector2 blueSize   = font.MeasureString(blueStr) * scale;
+        // --- Gem carrier HP ---
+        float blueHpFraction = 1f;
+        float redHpFraction  = 1f;
+        string blueHpText = "At Base";
+        string redHpText  = "At Base";
 
-        // Box dimensions
-        int timeW   = (int)timeSize.X  + boxPaddingX * 2;
-        int timeH   = (int)timeSize.Y  + boxPaddingY * 2;
-        int redW    = (int)redSize.X   + boxPaddingX * 2;
-        int blueW   = (int)blueSize.X  + boxPaddingX * 2;
-        int boxH    = timeH; // all boxes same height
+        var gm = ModContent.GetInstance<GameManager>();
+        if (gm?.BlueGem != null && gm.BlueGem.IsHeld)
+        {
+            Player carrier = Main.player[gm.BlueGem.HeldBy];
+            if (carrier != null && carrier.active && carrier.statLifeMax2 > 0)
+            {
+                blueHpFraction = Math.Clamp((float)carrier.statLife / carrier.statLifeMax2, 0f, 1f);
+                blueHpText = $"{carrier.name}: {carrier.statLife}/{carrier.statLifeMax2}";
+            }
+        }
+        if (gm?.RedGem != null && gm.RedGem.IsHeld)
+        {
+            Player carrier = Main.player[gm.RedGem.HeldBy];
+            if (carrier != null && carrier.active && carrier.statLifeMax2 > 0)
+            {
+                redHpFraction = Math.Clamp((float)carrier.statLife / carrier.statLifeMax2, 0f, 1f);
+                redHpText = $"{carrier.name}: {carrier.statLife}/{carrier.statLifeMax2}";
+            }
+        }
 
-        // Total width, centered on screen
-        int totalW  = redW + boxGap + timeW + boxGap + blueW;
-        int startX  = (Main.screenWidth - totalW) / 2;
+        Vector2 timeSize  = font.MeasureString(timeText) * scale;
+        string redStr     = $"{GameInfo.redCaptures}";
+        string blueStr    = $"{GameInfo.blueCaptures}";
+        Vector2 redSize   = font.MeasureString(redStr) * scale;
+        Vector2 blueSize  = font.MeasureString(blueStr) * scale;
 
-        // Box positions
-        Rectangle redBox   = new Rectangle(startX,                        topY, redW,  boxH);
-        Rectangle timeBox  = new Rectangle(startX + redW + boxGap,        topY, timeW, boxH);
-        Rectangle blueBox  = new Rectangle(startX + redW + boxGap + timeW + boxGap, topY, blueW, boxH);
+        int timeW  = (int)timeSize.X  + boxPaddingX * 2;
+        int timeH  = (int)timeSize.Y  + boxPaddingY * 2;
+        int redW   = (int)redSize.X   + boxPaddingX * 2;
+        int blueW  = (int)blueSize.X  + boxPaddingX * 2;
+        int boxH   = timeH;
 
-        // --- Draw boxes ---
+        var totalBars = 20;
+        var blueBars = (int)Math.Clamp(Math.Round(GameInfo.blueGemX / 100f * totalBars), 0, totalBars);
+        var redBars  = (int)Math.Clamp(Math.Round(GameInfo.redGemX  / 100f * totalBars), 0, totalBars);
+        string blueGemIndicator = "[c/0077B6:⬢" + new string('▮', blueBars) + "]" + "[i:1524]" + "[c/FFFFFF:" + new string('▮', totalBars - blueBars) + "⬢]";
+        string redGemIndicator  = "[c/FFFFFF:⬢" + new string('▮', totalBars - redBars) + "]" + "[i:1526]"  + "[c/FF0000:" + new string('▮', redBars) + "⬢]";
+
+        Vector2 blueBarSize = ChatManager.GetStringSize(font, blueGemIndicator, Vector2.One);
+        Vector2 redBarSize  = ChatManager.GetStringSize(font, redGemIndicator,  Vector2.One);
+
+        // Side boxes taller to fit HP bar
+        int sideBoxH = boxH + hpBarPaddingTop + hpBarHeight + hpBarPaddingBottom;
+        int blueBarW = (int)blueBarSize.X + boxPaddingX * 2;
+        int redBarW  = (int)redBarSize.X  + boxPaddingX * 2;
+
+        int totalW = blueBarW + boxGap + blueW + boxGap + timeW + boxGap + redW + boxGap + redBarW;
+        int startX = (Main.screenWidth - totalW) / 2;
+
+        Rectangle blueBarBox = new Rectangle(startX,                                                                        topY, blueBarW, sideBoxH);
+        Rectangle blueBox    = new Rectangle(startX + blueBarW + boxGap,                                                    topY, blueW,    boxH);
+        Rectangle timeBox    = new Rectangle(startX + blueBarW + boxGap + blueW + boxGap,                                   topY, timeW,    boxH);
+        Rectangle redBox     = new Rectangle(startX + blueBarW + boxGap + blueW + boxGap + timeW + boxGap,                  topY, redW,     boxH);
+        Rectangle redBarBox  = new Rectangle(startX + blueBarW + boxGap + blueW + boxGap + timeW + boxGap + redW + boxGap,  topY, redBarW,  sideBoxH);
+
         Texture2D pixel = TextureAssets.MagicPixel.Value;
 
-        // Red box background + border
-        Main.spriteBatch.Draw(pixel, redBox, Color.DarkRed * 0.85f);
-        DrawBorder(Main.spriteBatch, pixel, redBox, Color.Red, 2);
+        Main.spriteBatch.Draw(pixel, blueBarBox, new Color(0, 60, 140) * 0.85f);
+        DrawBorder(Main.spriteBatch, pixel, blueBarBox, new Color(50, 150, 255), 2);
 
-        // White/neutral time box background + border
-        Main.spriteBatch.Draw(pixel, timeBox, Color.Black * 0.75f);
-        DrawBorder(Main.spriteBatch, pixel, timeBox, Color.White, 2);
-
-        // Blue box background + border
         Main.spriteBatch.Draw(pixel, blueBox, new Color(0, 60, 140) * 0.85f);
         DrawBorder(Main.spriteBatch, pixel, blueBox, new Color(50, 150, 255), 2);
 
-        // --- Draw text centered in each box ---
-        Vector2 redTextPos  = new Vector2(redBox.X  + (redBox.Width  - redSize.X)  / 2,
-                                        redBox.Y  + (redBox.Height - redSize.Y)  / 2);
-        Vector2 timeTextPos = new Vector2(timeBox.X + (timeBox.Width - timeSize.X) / 2,
-                                        timeBox.Y + (timeBox.Height - timeSize.Y) / 2);
-        Vector2 blueTextPos = new Vector2(blueBox.X + (blueBox.Width - blueSize.X) / 2,
-                                        blueBox.Y + (blueBox.Height - blueSize.Y) / 2);
+        Main.spriteBatch.Draw(pixel, timeBox, Color.Black * 0.75f);
+        DrawBorder(Main.spriteBatch, pixel, timeBox, Color.White, 2);
 
-        Utils.DrawBorderString(Main.spriteBatch, redStr,   redTextPos,  Color.White, scale);
-        Utils.DrawBorderString(Main.spriteBatch, timeText, timeTextPos, Color.White, scale);
+        Main.spriteBatch.Draw(pixel, redBox, Color.DarkRed * 0.85f);
+        DrawBorder(Main.spriteBatch, pixel, redBox, Color.Red, 2);
+
+        Main.spriteBatch.Draw(pixel, redBarBox, Color.DarkRed * 0.85f);
+        DrawBorder(Main.spriteBatch, pixel, redBarBox, Color.Red, 2);
+
+        // Progress bar text (top portion of side boxes)
+        Vector2 blueBarTextPos = new Vector2(blueBarBox.X + (blueBarBox.Width - blueBarSize.X) / 2, blueBarBox.Y + (boxH - blueBarSize.Y) / 2);
+        Vector2 blueTextPos    = new Vector2(blueBox.X    + (blueBox.Width    - blueSize.X)    / 2, blueBox.Y    + (blueBox.Height - blueSize.Y)    / 2);
+        Vector2 timeTextPos    = new Vector2(timeBox.X    + (timeBox.Width    - timeSize.X)    / 2, timeBox.Y    + (timeBox.Height - timeSize.Y)    / 2);
+        Vector2 redTextPos     = new Vector2(redBox.X     + (redBox.Width     - redSize.X)     / 2, redBox.Y     + (redBox.Height  - redSize.Y)     / 2);
+        Vector2 redBarTextPos  = new Vector2(redBarBox.X  + (redBarBox.Width  - redBarSize.X)  / 2, redBarBox.Y  + (boxH - redBarSize.Y) / 2);
+
+        ChatManager.DrawColorCodedStringWithShadow(Main.spriteBatch, font, blueGemIndicator, blueBarTextPos, Color.White, 0, Vector2.Zero, Vector2.One);
         Utils.DrawBorderString(Main.spriteBatch, blueStr,  blueTextPos, Color.White, scale);
+        Utils.DrawBorderString(Main.spriteBatch, timeText, timeTextPos, Color.White, scale);
+        Utils.DrawBorderString(Main.spriteBatch, redStr,   redTextPos,  Color.White, scale);
+        ChatManager.DrawColorCodedStringWithShadow(Main.spriteBatch, font, redGemIndicator, redBarTextPos, Color.White, 0, Vector2.Zero, Vector2.One);
+
+        // HP bars
+        int hpBarY = topY + boxH + hpBarPaddingTop;
+        int blueHpInnerW = blueBarBox.Width - boxPaddingX * 2;
+        int redHpInnerW  = redBarBox.Width  - boxPaddingX * 2;
+
+        Rectangle blueHpBg   = new Rectangle(blueBarBox.X + boxPaddingX, hpBarY, blueHpInnerW, hpBarHeight);
+        Rectangle blueHpFill = new Rectangle(blueBarBox.X + boxPaddingX, hpBarY, (int)(blueHpInnerW * blueHpFraction), hpBarHeight);
+        Main.spriteBatch.Draw(pixel, blueHpBg,   Color.Black * 0.6f);
+        Main.spriteBatch.Draw(pixel, blueHpFill, new Color(50, 150, 255));
+        DrawBorder(Main.spriteBatch, pixel, blueHpBg, new Color(50, 150, 255) * 0.8f, 1);
+
+        Rectangle redHpBg   = new Rectangle(redBarBox.X + boxPaddingX, hpBarY, redHpInnerW, hpBarHeight);
+        Rectangle redHpFill = new Rectangle(redBarBox.X + boxPaddingX, hpBarY, (int)(redHpInnerW * redHpFraction), hpBarHeight);
+        Main.spriteBatch.Draw(pixel, redHpBg,   Color.Black * 0.6f);
+        Main.spriteBatch.Draw(pixel, redHpFill, new Color(220, 50, 50));
+        DrawBorder(Main.spriteBatch, pixel, redHpBg, new Color(220, 50, 50) * 0.8f, 1);
+
+        Vector2 blueHpTextSize = font.MeasureString(blueHpText) * 0.85f;
+        Vector2 redHpTextSize  = font.MeasureString(redHpText)  * 0.85f;
+
+        Vector2 blueHpTextPos = new Vector2(
+            blueHpBg.X + (blueHpBg.Width  - blueHpTextSize.X) / 2,
+            blueHpBg.Y + (blueHpBg.Height / 2) - hpTextOffsetY);
+        Vector2 redHpTextPos = new Vector2(
+            redHpBg.X  + (redHpBg.Width   - redHpTextSize.X)  / 2,
+            redHpBg.Y  + (redHpBg.Height  / 2) - hpTextOffsetY);
+
+        Utils.DrawBorderString(Main.spriteBatch, blueHpText, blueHpTextPos, Color.White, 0.85f);
+        Utils.DrawBorderString(Main.spriteBatch, redHpText,  redHpTextPos,  Color.White, 0.85f);
     }
 
     // Helper to draw a rectangle outline

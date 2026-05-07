@@ -842,7 +842,7 @@ namespace CTG2
                         updateCarrier.Write((byte)MessageType.UpdateBlueGemCarrier);
                         updateCarrier.Write(blueGemCarrier);
                         updateCarrier.Write(blueGemCarrierName);
-                        updateCarrier.Send(-1);
+                        updateCarrier.Send();
                     }
                     break;
                 }
@@ -859,7 +859,7 @@ namespace CTG2
                         updateCarrier.Write((byte)MessageType.UpdateRedGemCarrier);
                         updateCarrier.Write(redGemCarrier);
                         updateCarrier.Write(redGemCarrierName);
-                        updateCarrier.Send(-1);
+                        updateCarrier.Send();
                     }
 
                     break;
@@ -1729,13 +1729,6 @@ namespace CTG2
 
                     gem.IsHeld = true;
                     gem.HeldBy = heldByPlayer;
-
-                    string carrierName = Main.player[heldByPlayer].name;
-
-                    if (gemId == 1)
-                        GameInfo.redGemCarrierName = carrierName;
-                    else
-                        GameInfo.blueGemCarrierName = carrierName;
 
                     gem.IsPickupPending = false; // clear pending on all clients
 

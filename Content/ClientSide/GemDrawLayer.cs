@@ -20,12 +20,14 @@ public class GemDrawLayer : PlayerDrawLayer
         Player player = drawInfo.drawPlayer;
         Texture2D gemTexture = null;
 
-        if (!string.IsNullOrEmpty(GameInfo.blueGemCarrierName) && player.name == GameInfo.blueGemCarrierName)
+        var gm = ModContent.GetInstance<GameManager>();
+        if (gm?.BlueGem == null || gm?.RedGem == null) return;
+
+        if (gm.BlueGem.IsHeld && player.whoAmI == gm.BlueGem.HeldBy)
         {
             gemTexture = Terraria.GameContent.TextureAssets.Item[ItemID.LargeSapphire].Value;
         }
-
-        else if (!string.IsNullOrEmpty(GameInfo.redGemCarrierName) && player.name == GameInfo.redGemCarrierName)
+        else if (gm.RedGem.IsHeld && player.whoAmI == gm.RedGem.HeldBy)
         {
             gemTexture = Terraria.GameContent.TextureAssets.Item[ItemID.LargeRuby].Value;
         }
